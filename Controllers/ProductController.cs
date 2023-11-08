@@ -47,6 +47,29 @@ namespace ProductApi.Controllers
             return Ok(product.Id);
         }
 
+        [HttpPut]
+        public async Task<ActionResult<Product>> UpdateProduct([FromBody] Product product)
+        {
+            var idNull = new Guid();
+            if (product.Id == idNull)
+                ModelState.AddModelError(nameof(product.Id), "Id is required");
+
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var productDb = await _context.Products.FindAsync(product.Id);
+
+            if (productDb == null)
+                return NotFound();
+
+            productDb.Quantity = product.Quantity;
+            productDb.Description = product.Description;
+            await _context.SaveChangesAsync();
+
+            return Ok(productDb);
+        }
+
     }
 
 
