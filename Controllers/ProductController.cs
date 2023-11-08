@@ -34,12 +34,8 @@ namespace ProductApi.Controllers
         [HttpPost]
         public async Task<ActionResult<Product>> PostGuid([FromBody] Product product)
         {
-
-            if (String.IsNullOrWhiteSpace(product.Name))
-                ModelState.AddModelError(nameof(product.Name), "Product name is required.");
-
             if (product.Price <= 0)
-                ModelState.AddModelError(nameof(product.Price), "Correct price is required");
+                ModelState.AddModelError(nameof(product.Price), "Price is required");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
