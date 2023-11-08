@@ -58,18 +58,34 @@ namespace ProductApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var productDb = await _context.Products.FindAsync(product.Id);
+            var dbProduct = await _context.Products.FindAsync(product.Id);
 
-            if (productDb == null)
+            if (dbProduct == null)
                 return NotFound();
 
-            productDb.Quantity = product.Quantity;
-            productDb.Description = product.Description;
+            dbProduct.Quantity = product.Quantity;
+            dbProduct.Description = product.Description;
             await _context.SaveChangesAsync();
 
-            return Ok(productDb);
+            return Ok(dbProduct);
         }
 
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<Product>> DeleteProduct(Guid id)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var dbProduct = await _context.Products.FindAsync(id);
+
+            if (dbProduct == null)
+                return NotFound("Product not found");
+
+            _context.Remove(dbProduct);
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
     }
 
 
