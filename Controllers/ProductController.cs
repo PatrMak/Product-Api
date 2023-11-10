@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using ProductApi.Context;
 using ProductApi.Models;
+using ProductApi.Repository;
 
 namespace ProductApi.Controllers
 {
@@ -10,21 +9,26 @@ namespace ProductApi.Controllers
     public class ProductController : Controller
     {
 
-        private readonly ProductDbContext _context;
+        private readonly IUnitOfWork unitOfWork;
+        private readonly IProductRepository repository;
 
-        public ProductController(ProductDbContext context) => _context = context;
+        public ProductController(IUnitOfWork unitOfWork, IProductRepository repository)
+        {
+            this.unitOfWork = unitOfWork;
+            this.repository = repository;
+        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
-            return Ok(await _context.Products.ToListAsync());
+            return Ok(await repository.GetProductsAsync());
 
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(Guid id)
         {
-            var result = await _context.Products.FindAsync(id);
+            var result = await repository.GetProductAsync(id);
             if (result == null)
                 return NotFound();
 
@@ -32,7 +36,7 @@ namespace ProductApi.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Product>> PostGuid([FromBody] Product product)
+        public async Task<ActionResult<Guid>> PostGuid([FromBody] Product product)
         {
             if (product.Price <= 0)
                 ModelState.AddModelError(nameof(product.Price), "Price is required");
@@ -40,16 +44,19 @@ namespace ProductApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            await _context.Products.AddAsync(product);
-            await _context.SaveChangesAsync();
+            var result = await repository.AddProductAsync(product);
+            await unitOfWork.CompleteAsync();
 
 
-            return Ok(product.Id);
+            return Ok(result);
         }
 
         [HttpPut]
         public async Task<ActionResult<Product>> UpdateProduct([FromBody] Product product)
         {
+            if (product == null)
+                ModelState.AddModelError(nameof(product), "Product property is required");
+
             var idNull = new Guid();
             if (product.Id == idNull)
                 ModelState.AddModelError(nameof(product.Id), "Id is required");
@@ -58,31 +65,28 @@ namespace ProductApi.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var dbProduct = await _context.Products.FindAsync(product.Id);
+            var dbProduct = await repository.UpdateProductAsync(product);
 
             if (dbProduct == null)
                 return NotFound();
 
-            dbProduct.Quantity = product.Quantity;
-            dbProduct.Description = product.Description;
-            await _context.SaveChangesAsync();
+            await unitOfWork.CompleteAsync();
 
             return Ok(dbProduct);
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult<Product>> DeleteProduct(Guid id)
+        public async Task<ActionResult> DeleteProduct(Guid id)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var dbProduct = await _context.Products.FindAsync(id);
+            var result = await repository.RemoveProductAsync(id);
 
-            if (dbProduct == null)
+            if (!result)
                 return NotFound("Product not found");
 
-            _context.Remove(dbProduct);
-            await _context.SaveChangesAsync();
+            await unitOfWork.CompleteAsync();
 
             return Ok();
         }
