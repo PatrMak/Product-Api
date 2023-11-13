@@ -63,6 +63,10 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 appsettings.json
+serviceDependencies.json
+serviceDependencies.ProductApii - Web Deploy.json
+serviceDependencies/
+
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
